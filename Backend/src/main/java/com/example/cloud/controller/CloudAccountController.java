@@ -9,6 +9,7 @@ import com.example.cloud.service.OptimizationService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -151,19 +152,37 @@ public class CloudAccountController {
     @PostMapping("/{accountId}/optimize")
     public ResponseEntity<AccountOptimizationResponse>
     optimizeAccount(
-
             @PathVariable UUID accountId,
-
             Authentication authentication
     ) {
 
         return ResponseEntity.ok(
-
                 accountOptimizationService.optimizeAccount(
-
                         accountId,
-
                         authentication.getName()
+                )
+        );
+    }
+
+
+    @GetMapping("/{accountId}/reports")
+    public ResponseEntity<Page<OptimizationReportResponse>>
+    getReports(
+
+            @PathVariable UUID accountId,
+            Authentication authentication,
+            @RequestParam(defaultValue = "0")
+            int page,
+            @RequestParam(defaultValue = "10")
+            int size
+    ) {
+
+        return ResponseEntity.ok(
+                accountOptimizationService.getReports(
+                        accountId,
+                        authentication.getName(),
+                        page,
+                        size
                 )
         );
     }
