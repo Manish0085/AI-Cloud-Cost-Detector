@@ -1,12 +1,15 @@
 package com.example.cloud.service.impl;
 
-import com.example.cloud.dto.*;
+import com.example.cloud.dto.Ec2DetailsResponse;
+import com.example.cloud.dto.OptimizationResponse;
+import com.example.cloud.dto.ResourceFinding;
+import com.example.cloud.service.AiRecommendationService;
 import com.example.cloud.service.AwsDiscoveryService;
 import com.example.cloud.service.OptimizationService;
+import com.example.cloud.service.ResourceAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,6 +19,10 @@ public class OptimizationServiceImpl
         implements OptimizationService {
 
     private final AwsDiscoveryService awsDiscoveryService;
+
+    private final ResourceAnalysisService resourceAnalysisService;
+
+    private final AiRecommendationService aiRecommendationService;
 
     @Override
     public OptimizationResponse analyzeEc2(
@@ -34,77 +41,24 @@ public class OptimizationServiceImpl
                         email
                 );
 
-        ResourceMetricsResponse metrics =
-                awsDiscoveryService.getMetrics(
+        List<ResourceFinding> findings =
+                resourceAnalysisService.analyzeResource(
+
                         cloudAccountId,
+
                         resourceId,
+
                         email
                 );
 
-        List<Recommendation> recommendations =
-                new ArrayList<>();
+        String aiRecommendation =
+                aiRecommendationService
+                        .generateResourceRecommendation(
 
-        if (metrics.cpuUtilization() < 5) {
+                                details.instanceName(),
 
-            recommendations.add(
-
-                    new Recommendation(
-
-                            "COST",
-
-                            "Downsize instance",
-
-                            "CPU utilization remained below 5%"
-                    )
-            );
-        }
-
-        if (metrics.networkIn() < 1000
-                && metrics.networkOut() < 1000) {
-
-            recommendations.add(
-
-                    new Recommendation(
-
-                            "COST",
-
-                            "Investigate idle workload",
-
-                            "Network activity is extremely low"
-                    )
-            );
-        }
-
-        if (metrics.diskReadBytes() == 0
-                && metrics.diskWriteBytes() == 0) {
-
-            recommendations.add(
-
-                    new Recommendation(
-
-                            "PERFORMANCE",
-
-                            "Review necessity of instance",
-
-                            "No disk activity detected"
-                    )
-            );
-        }
-
-        if (recommendations.isEmpty()) {
-
-            recommendations.add(
-
-                    new Recommendation(
-
-                            "INFO",
-
-                            "No optimization opportunities detected",
-
-                            "Resource appears healthy"
-                    )
-            );
-        }
+                                findings
+                        );
 
         return new OptimizationResponse(
 
@@ -112,7 +66,7 @@ public class OptimizationServiceImpl
 
                 details.instanceType(),
 
-                "AI analysis pending"
+                aiRecommendation
         );
     }
 }

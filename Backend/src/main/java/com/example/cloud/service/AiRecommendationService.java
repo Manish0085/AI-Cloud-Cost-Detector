@@ -1,19 +1,20 @@
 package com.example.cloud.service;
 
-import com.example.cloud.dto.Ec2DetailsResponse;
-import com.example.cloud.dto.Recommendation;
-import com.example.cloud.dto.ResourceMetricsResponse;
+import com.example.cloud.dto.*;
 
 import java.util.List;
 
 public interface AiRecommendationService {
 
-    String generateRecommendation(
+    String generateResourceRecommendation(
 
-            Ec2DetailsResponse details,
+            String resourceName,
 
-            ResourceMetricsResponse metrics,
+            List<ResourceFinding> findings
+    );
 
-            List<Recommendation> recommendations
+    String generateExecutiveSummary(
+
+            List<ResourceOptimizationResult> resources
     );
 }

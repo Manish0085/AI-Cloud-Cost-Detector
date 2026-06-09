@@ -6,8 +6,10 @@ public record AccountOptimizationResponse(
 
         int totalResources,
 
-        List<ResourceFinding> findings,
+        int totalFindings,
 
-        String aiRecommendation
+        List<ResourceOptimizationResult> resources,
+
+        String executiveSummary
 ) {
 }
