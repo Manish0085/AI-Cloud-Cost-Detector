@@ -32,3 +32,4 @@ build/
 ### VS Code ###
 .vscode/
 /src/main/resource/application.properties
+/src/main/resource/application.yaml

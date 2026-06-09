@@ -1,8 +1,10 @@
 package com.example.cloud.service.impl;
 
-import com.example.cloud.dto.*;
+import com.example.cloud.dto.Ec2DetailsResponse;
+import com.example.cloud.dto.ResourceFinding;
+import com.example.cloud.dto.ResourceMetricsResponse;
 import com.example.cloud.service.AwsDiscoveryService;
-import com.example.cloud.service.OptimizationService;
+import com.example.cloud.service.ResourceAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,13 +14,13 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class OptimizationServiceImpl
-        implements OptimizationService {
+public class ResourceAnalysisServiceImpl
+        implements ResourceAnalysisService {
 
     private final AwsDiscoveryService awsDiscoveryService;
 
     @Override
-    public OptimizationResponse analyzeEc2(
+    public List<ResourceFinding> analyzeResource(
 
             UUID cloudAccountId,
 
@@ -41,18 +43,20 @@ public class OptimizationServiceImpl
                         email
                 );
 
-        List<Recommendation> recommendations =
+        List<ResourceFinding> findings =
                 new ArrayList<>();
 
         if (metrics.cpuUtilization() < 5) {
 
-            recommendations.add(
+            findings.add(
 
-                    new Recommendation(
+                    new ResourceFinding(
 
-                            "COST",
+                            resourceId,
 
-                            "Downsize instance",
+                            "EC2",
+
+                            "Downsize Instance",
 
                             "CPU utilization remained below 5%"
                     )
@@ -62,13 +66,15 @@ public class OptimizationServiceImpl
         if (metrics.networkIn() < 1000
                 && metrics.networkOut() < 1000) {
 
-            recommendations.add(
+            findings.add(
 
-                    new Recommendation(
+                    new ResourceFinding(
 
-                            "COST",
+                            resourceId,
 
-                            "Investigate idle workload",
+                            "EC2",
+
+                            "Investigate Idle Workload",
 
                             "Network activity is extremely low"
                     )
@@ -78,41 +84,38 @@ public class OptimizationServiceImpl
         if (metrics.diskReadBytes() == 0
                 && metrics.diskWriteBytes() == 0) {
 
-            recommendations.add(
+            findings.add(
 
-                    new Recommendation(
+                    new ResourceFinding(
 
-                            "PERFORMANCE",
+                            resourceId,
 
-                            "Review necessity of instance",
+                            "EC2",
+
+                            "Review Necessity Of Resource",
 
                             "No disk activity detected"
                     )
             );
         }
 
-        if (recommendations.isEmpty()) {
+        if (findings.isEmpty()) {
 
-            recommendations.add(
+            findings.add(
 
-                    new Recommendation(
+                    new ResourceFinding(
 
-                            "INFO",
+                            resourceId,
 
-                            "No optimization opportunities detected",
+                            "EC2",
+
+                            "No Optimization Needed",
 
                             "Resource appears healthy"
                     )
             );
         }
 
-        return new OptimizationResponse(
-
-                resourceId,
-
-                details.instanceType(),
-
-                "AI analysis pending"
-        );
+        return findings;
     }
 }

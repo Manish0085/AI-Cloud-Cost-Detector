@@ -2,6 +2,7 @@ package com.example.cloud.controller;
 
 import com.example.cloud.dto.*;
 import com.example.cloud.enums.ResourceType;
+import com.example.cloud.service.AccountOptimizationService;
 import com.example.cloud.service.AwsDiscoveryService;
 import com.example.cloud.service.CloudAccountService;
 import com.example.cloud.service.OptimizationService;
@@ -26,6 +27,7 @@ public class CloudAccountController {
     private final CloudAccountService cloudAccountService;
     private final AwsDiscoveryService awsDiscoveryService;
     private final OptimizationService optimizationService;
+    private final AccountOptimizationService accountOptimizationService;
 
     @PostMapping("/connect")
     public ResponseEntity<String> connectAccount(
@@ -139,6 +141,27 @@ public class CloudAccountController {
                         accountId,
 
                         resourceId,
+
+                        authentication.getName()
+                )
+        );
+    }
+
+
+    @PostMapping("/{accountId}/optimize")
+    public ResponseEntity<AccountOptimizationResponse>
+    optimizeAccount(
+
+            @PathVariable UUID accountId,
+
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+
+                accountOptimizationService.optimizeAccount(
+
+                        accountId,
 
                         authentication.getName()
                 )
