@@ -1,6 +1,7 @@
 package com.example.cloud.service;
 
 import com.example.cloud.dto.AccountOptimizationResponse;
+import com.example.cloud.dto.OptimizationReportDetailsResponse;
 import com.example.cloud.dto.OptimizationReportResponse;
 import org.springframework.data.domain.Page;
 
@@ -22,4 +23,6 @@ public interface AccountOptimizationService {
             int page,
             int size
     );
+
+    OptimizationReportDetailsResponse getReport(UUID reportId);
 }

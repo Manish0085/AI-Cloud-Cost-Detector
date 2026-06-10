@@ -186,4 +186,15 @@ public class CloudAccountController {
                 )
         );
     }
+
+    @GetMapping("/reports/{reportId}")
+    public ResponseEntity<OptimizationReportDetailsResponse> getReport(
+            @PathVariable UUID reportId
+    ) {
+
+        return ResponseEntity.ok(
+                accountOptimizationService
+                        .getReport(reportId)
+        );
+    }
 }

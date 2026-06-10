@@ -5,6 +5,7 @@ import com.example.cloud.entity.CloudAccount;
 import com.example.cloud.entity.OptimizationReport;
 import com.example.cloud.enums.ResourceType;
 import com.example.cloud.exception.CloudAccountNotFoundException;
+import com.example.cloud.exception.ResourceNotFoundException;
 import com.example.cloud.respository.CloudAccountRepository;
 import com.example.cloud.respository.OptimizationReportRepository;
 import com.example.cloud.service.AccountOptimizationService;
@@ -163,5 +164,28 @@ public class AccountOptimizationServiceImpl
                                 report.getCreatedAt()
                         )
                 );
+    }
+
+
+    @Override
+    public OptimizationReportDetailsResponse
+    getReport(UUID reportId) {
+
+        OptimizationReport report =
+                optimizationReportRepository
+                        .findById(reportId)
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException(
+                                        "Report not found"
+                                )
+                        );
+
+        return new OptimizationReportDetailsResponse(
+                report.getId(),
+                report.getTotalResources(),
+                report.getTotalFindings(),
+                report.getExecutiveSummary(),
+                report.getCreatedAt()
+        );
     }
 }
