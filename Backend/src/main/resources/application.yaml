@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/ai_cloud_cost_optimizer
     username: postgres
-    password: root
+    password: postgres
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -21,8 +21,12 @@ spring:
 
   ai:
     openai:
-      api-key: ${OPENROUTER_API_KEY}
+#      api-key: ${OPENROUTER_API_KEY}
       base-url: https://openrouter.ai/api
+
+    vectorstore:
+      pgvector:
+        initialize-schema: true
 
 jwt:
   secret: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY3ODkwYWJjZGVmZw==

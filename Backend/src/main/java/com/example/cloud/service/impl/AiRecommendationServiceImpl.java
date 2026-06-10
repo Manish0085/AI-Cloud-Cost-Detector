@@ -3,6 +3,7 @@ package com.example.cloud.service.impl;
 import com.example.cloud.dto.ResourceFinding;
 import com.example.cloud.dto.ResourceOptimizationResult;
 import com.example.cloud.service.AiRecommendationService;
+import com.example.cloud.service.RagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ public class AiRecommendationServiceImpl
         implements AiRecommendationService {
 
     private final ChatClient chatClient;
+    private final RagService ragService;
 
     @Override
     public String generateResourceRecommendation(
@@ -24,42 +26,59 @@ public class AiRecommendationServiceImpl
             List<ResourceFinding> findings
     ) {
 
-        StringBuilder prompt =
-                new StringBuilder();
+        String findingsText =
+                buildFindingsText(findings);
 
-        prompt.append("""
-                You are a Senior AWS FinOps Architect.
+        String query =
+                findings.stream()
+                        .map(ResourceFinding::reason)
+                        .collect(
+                                java.util.stream.Collectors.joining(" ")
+                        );
 
-                Analyze the findings for this AWS resource.
+        String ragContext =
+                ragService.retrieveContext(
+                        query
+                );
 
-                Provide:
-                1. Current Situation
-                2. Recommendation
-                3. Potential Savings
+        String prompt = """
 
-                Keep the response under 100 words.
+            You are a Senior AWS FinOps Architect.
 
-                Resource Name:
-                """);
+            Use the AWS Best Practices provided below
+            when generating recommendations.
 
-        prompt.append(resourceName)
-                .append("\n\nFindings:\n");
+            AWS Best Practices:
 
-        findings.forEach(finding ->
+            %s
 
-                prompt.append("""
-                        
-                        Recommendation: %s
-                        Reason: %s
-                        
-                        """.formatted(
-                        finding.recommendation(),
-                        finding.reason()
-                ))
+            Resource Name:
+            %s
+
+            Resource Findings:
+
+            %s
+
+            Generate:
+
+            1. Current Situation
+            2. Recommendation
+            3. Business Impact
+            4. Potential Savings
+
+            Keep the response under 120 words.
+
+            """.formatted(
+
+                ragContext,
+
+                resourceName,
+
+                findingsText
         );
 
         return chatClient.prompt()
-                .user(prompt.toString())
+                .user(prompt)
                 .call()
                 .content();
     }
@@ -110,5 +129,33 @@ public class AiRecommendationServiceImpl
                 .user(prompt.toString())
                 .call()
                 .content();
+    }
+
+    private String buildFindingsText(
+            List<ResourceFinding> findings
+    ) {
+
+        StringBuilder findingsText =
+                new StringBuilder();
+
+        for (ResourceFinding finding : findings) {
+
+            findingsText.append("""
+
+                Resource ID: %s
+                Resource Type: %s
+                Recommendation: %s
+                Reason: %s
+
+                """.formatted(
+
+                    finding.resourceId(),
+                    finding.resourceType(),
+                    finding.recommendation(),
+                    finding.reason()
+            ));
+        }
+
+        return findingsText.toString();
     }
 }
