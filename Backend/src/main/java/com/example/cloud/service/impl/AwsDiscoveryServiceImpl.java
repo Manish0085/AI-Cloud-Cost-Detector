@@ -1,8 +1,6 @@
 package com.example.cloud.service.impl;
 
-import com.example.cloud.dto.Ec2DetailsResponse;
-import com.example.cloud.dto.ResourceMetricsResponse;
-import com.example.cloud.dto.ResourceResponse;
+import com.example.cloud.dto.*;
 import com.example.cloud.entity.CloudAccount;
 import com.example.cloud.enums.ResourceType;
 import com.example.cloud.exception.CloudAccountAccessDeniedException;
@@ -23,6 +21,14 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.DescribeInstancesResponse;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.ec2.model.Reservation;
+import software.amazon.awssdk.services.eks.EksClient;
+import software.amazon.awssdk.services.eks.model.*;
+import software.amazon.awssdk.services.rds.RdsClient;
+import software.amazon.awssdk.services.rds.model.DBInstance;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesRequest;
+import software.amazon.awssdk.services.rds.model.DescribeDbInstancesResponse;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -87,13 +93,16 @@ public class AwsDiscoveryServiceImpl
                     );
 
             case RDS ->
-                    List.of();
+                    discoverRds(credentials, regions);
 
             case S3 ->
-                    List.of();
+                    discoverS3(
+                            credentials
+                    );
+
 
             case EKS ->
-                    List.of();
+                    discoverEks(credentials, regions);
 
             case ALL -> {
 
@@ -104,6 +113,12 @@ public class AwsDiscoveryServiceImpl
                         discoverEc2(
                                 credentials,
                                 regions
+                        )
+                );
+
+                resources.addAll(
+                        discoverS3(
+                                credentials
                         )
                 );
 
@@ -160,6 +175,149 @@ public class AwsDiscoveryServiceImpl
                         "Failed to scan EC2 resources in region {}",
                         region.id(),
                         ex
+                );
+            }
+        }
+
+        return resources;
+    }
+
+
+    private List<ResourceResponse> discoverS3(
+            AwsBasicCredentials credentials
+    ) {
+
+        S3Client s3Client =
+                S3Client.builder()
+                        .credentialsProvider(
+                                StaticCredentialsProvider.create(
+                                        credentials
+                                )
+                        )
+                        .region(Region.US_EAST_1)
+                        .build();
+
+        ListBucketsResponse response =
+                s3Client.listBuckets();
+
+        return response.buckets()
+                .stream()
+                .map(bucket ->
+                        new ResourceResponse(
+                                bucket.name(),      // resourceId
+                                bucket.name(),      // resourceName
+                                ResourceType.S3.name(),
+                                "GLOBAL",
+                                "ACTIVE"
+                        )
+                )
+                .toList();
+    }
+
+    private List<ResourceResponse> discoverRds(
+            AwsBasicCredentials credentials,
+            List<Region> regions
+    ) {
+
+        List<ResourceResponse> resources =
+                new ArrayList<>();
+
+        for (Region region : regions) {
+
+            try {
+
+                RdsClient rdsClient =
+                        RdsClient.builder()
+                                .credentialsProvider(
+                                        StaticCredentialsProvider.create(
+                                                credentials
+                                        )
+                                )
+                                .region(region)
+                                .build();
+
+                DescribeDbInstancesResponse response =
+                        rdsClient.describeDBInstances();
+
+                for (DBInstance db : response.dbInstances()) {
+
+                    resources.add(
+                            new ResourceResponse(
+                                    db.dbInstanceIdentifier(),
+                                    db.dbInstanceIdentifier(),
+                                    ResourceType.RDS.name(),
+                                    region.id(),
+                                    db.dbInstanceStatus()
+                            )
+                    );
+                }
+
+            } catch (Exception ex) {
+
+                log.warn(
+                        "Failed to discover RDS instances in region {}",
+                        region.id()
+                );
+            }
+        }
+
+        return resources;
+    }
+
+
+    private List<ResourceResponse> discoverEks(
+            AwsBasicCredentials credentials,
+            List<Region> regions
+    ) {
+
+        List<ResourceResponse> resources =
+                new ArrayList<>();
+
+        for (Region region : regions) {
+
+            try {
+
+                EksClient eksClient =
+                        EksClient.builder()
+                                .credentialsProvider(
+                                        StaticCredentialsProvider.create(
+                                                credentials
+                                        )
+                                )
+                                .region(region)
+                                .build();
+
+                ListClustersResponse response =
+                        eksClient.listClusters();
+
+                for (String clusterName : response.clusters()) {
+
+                    DescribeClusterResponse cluster =
+                            eksClient.describeCluster(
+                                    request ->
+                                            request.name(
+                                                    clusterName
+                                            )
+                            );
+
+                    resources.add(
+                            new ResourceResponse(
+                                    clusterName,
+                                    clusterName,
+                                    ResourceType.EKS.name(),
+                                    region.id(),
+                                    cluster.cluster()
+                                            .status()
+                                            .toString()
+                            )
+                    );
+                }
+
+            } catch (Exception ex) {
+
+                log.warn(
+                        "Failed to discover EKS clusters in region {}",
+                        region.id()
                 );
             }
         }
@@ -432,5 +590,334 @@ public class AwsDiscoveryServiceImpl
                 .map(Datapoint::average)
                 .max(Double::compareTo)
                 .orElse(0.0);
+    }
+
+
+
+    @Override
+    public S3DetailsResponse getS3Details(
+
+            UUID cloudAccountId,
+
+            String bucketName,
+
+            String email
+    ) {
+
+        CloudAccount account =
+                cloudAccountRepository
+                        .findById(cloudAccountId)
+                        .orElseThrow(() ->
+                                new CloudAccountNotFoundException(
+                                        "Cloud account not found"
+                                ));
+
+        if (!account.getUser()
+                .getEmail()
+                .equals(email)) {
+
+            throw new CloudAccountAccessDeniedException(
+                    "Access denied"
+            );
+        }
+
+        AwsBasicCredentials credentials =
+                AwsBasicCredentials.create(
+                        account.getAccessKey(),
+                        account.getSecretKey()
+                );
+
+        try (S3Client s3Client =
+                     S3Client.builder()
+                             .credentialsProvider(
+                                     StaticCredentialsProvider.create(
+                                             credentials
+                                     )
+                             )
+                             .region(Region.US_EAST_1)
+                             .build()) {
+
+            String region =
+                    s3Client.getBucketLocation(
+                                    GetBucketLocationRequest.builder()
+                                            .bucket(bucketName)
+                                            .build()
+                            )
+                            .locationConstraintAsString();
+
+            if (region == null || region.isBlank()) {
+
+                region = "us-east-1";
+            }
+
+            boolean versioningEnabled = false;
+
+            try {
+
+                GetBucketVersioningResponse versioning =
+                        s3Client.getBucketVersioning(
+                                GetBucketVersioningRequest.builder()
+                                        .bucket(bucketName)
+                                        .build()
+                        );
+
+                versioningEnabled =
+                        versioning.status() ==
+                                BucketVersioningStatus.ENABLED;
+
+            } catch (Exception ignored) {
+            }
+
+            boolean publicAccessBlocked = true;
+
+            try {
+
+                GetPublicAccessBlockResponse response =
+                        s3Client.getPublicAccessBlock(
+                                GetPublicAccessBlockRequest.builder()
+                                        .bucket(bucketName)
+                                        .build()
+                        );
+
+                PublicAccessBlockConfiguration config =
+                        response.publicAccessBlockConfiguration();
+
+                publicAccessBlocked =
+                        config.blockPublicAcls()
+                                && config.blockPublicPolicy()
+                                && config.ignorePublicAcls()
+                                && config.restrictPublicBuckets();
+
+            } catch (Exception ex) {
+
+                publicAccessBlocked = false;
+            }
+
+            return new S3DetailsResponse(
+
+                    bucketName,
+
+                    region,
+
+                    versioningEnabled,
+
+                    publicAccessBlocked,
+
+                    0L,
+
+                    0L
+            );
+        }
+    }
+
+
+    @Override
+    public EksDetailsResponse getEksDetails(
+
+            UUID cloudAccountId,
+
+            String clusterName,
+
+            String email
+    ) {
+
+        CloudAccount account =
+                cloudAccountRepository
+                        .findById(cloudAccountId)
+                        .orElseThrow(() ->
+                                new CloudAccountNotFoundException(
+                                        "Cloud account not found"
+                                ));
+
+        if (!account.getUser()
+                .getEmail()
+                .equals(email)) {
+
+            throw new CloudAccountAccessDeniedException(
+                    "Access denied"
+            );
+        }
+
+        AwsBasicCredentials credentials =
+                AwsBasicCredentials.create(
+                        account.getAccessKey(),
+                        account.getSecretKey()
+                );
+
+        List<Region> regions =
+                awsRegionService.getAllRegions(
+                        credentials
+                );
+
+        for (Region region : regions) {
+
+            try {
+
+                EksClient eksClient =
+                        EksClient.builder()
+                                .credentialsProvider(
+                                        StaticCredentialsProvider.create(
+                                                credentials
+                                        )
+                                )
+                                .region(region)
+                                .build();
+
+                List<String> clusters =
+                        eksClient.listClusters()
+                                .clusters();
+
+                if (!clusters.contains(clusterName)) {
+                    continue;
+                }
+
+                Cluster cluster =
+                        eksClient.describeCluster(
+                                        DescribeClusterRequest.builder()
+                                                .name(clusterName)
+                                                .build()
+                                )
+                                .cluster();
+
+                int nodeCount = 0;
+
+                try {
+
+                    nodeCount =
+                            eksClient.listNodegroups(
+                                            ListNodegroupsRequest.builder()
+                                                    .clusterName(clusterName)
+                                                    .build()
+                                    )
+                                    .nodegroups()
+                                    .size();
+
+                } catch (Exception ignored) {
+                }
+
+                return new EksDetailsResponse(
+
+                        cluster.name(),
+
+                        cluster.version(),
+
+                        cluster.statusAsString(),
+
+                        cluster.endpoint(),
+
+                        nodeCount
+                );
+
+            } catch (Exception ex) {
+
+                log.warn(
+                        "Failed to search EKS cluster {} in region {}",
+                        clusterName,
+                        region.id()
+                );
+            }
+        }
+
+        throw new ResourceNotFoundException(
+                "EKS cluster not found: " + clusterName
+        );
+    }
+
+
+    @Override
+    public RdsDetailsResponse getRdsDetails(
+
+            UUID cloudAccountId,
+
+            String dbIdentifier,
+
+            String email
+    ) {
+
+        CloudAccount account =
+                cloudAccountRepository
+                        .findById(cloudAccountId)
+                        .orElseThrow(() ->
+                                new CloudAccountNotFoundException(
+                                        "Cloud account not found"
+                                ));
+
+        if (!account.getUser()
+                .getEmail()
+                .equals(email)) {
+
+            throw new CloudAccountAccessDeniedException(
+                    "Access denied"
+            );
+        }
+
+        AwsBasicCredentials credentials =
+                AwsBasicCredentials.create(
+                        account.getAccessKey(),
+                        account.getSecretKey()
+                );
+
+        List<Region> regions =
+                awsRegionService.getAllRegions(
+                        credentials
+                );
+
+        for (Region region : regions) {
+
+            try {
+
+                RdsClient rdsClient =
+                        RdsClient.builder()
+                                .credentialsProvider(
+                                        StaticCredentialsProvider.create(
+                                                credentials
+                                        )
+                                )
+                                .region(region)
+                                .build();
+
+                DescribeDbInstancesResponse response =
+                        rdsClient.describeDBInstances();
+
+                for (DBInstance dbInstance :
+                        response.dbInstances()) {
+
+                    if (dbInstance
+                            .dbInstanceIdentifier()
+                            .equals(dbIdentifier)) {
+
+                        return new RdsDetailsResponse(
+
+                                dbInstance
+                                        .dbInstanceIdentifier(),
+
+                                dbInstance.engine(),
+
+                                dbInstance.engineVersion(),
+
+                                dbInstance.dbInstanceClass(),
+
+                                dbInstance.dbInstanceStatus(),
+
+                                dbInstance.allocatedStorage(),
+
+                                dbInstance.availabilityZone()
+                        );
+                    }
+                }
+
+            } catch (Exception ex) {
+
+                log.warn(
+                        "Failed to search RDS instance {} in region {}",
+                        dbIdentifier,
+                        region.id()
+                );
+            }
+        }
+
+        throw new ResourceNotFoundException(
+                "RDS instance not found: " + dbIdentifier
+        );
     }
 }

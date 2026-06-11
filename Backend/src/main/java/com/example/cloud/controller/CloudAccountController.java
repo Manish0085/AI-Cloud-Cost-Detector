@@ -173,25 +173,22 @@ public class CloudAccountController {
             responseCode = "200",
             description = "Optimization completed successfully"
     )
-    @PostMapping("/{accountId}/resources/{resourceId}/optimize")
+    @PostMapping(
+            "/{accountId}/resources/{resourceId}/optimize"
+    )
     public ResponseEntity<OptimizationResponse>
     optimize(
-
             @PathVariable UUID accountId,
-
             @PathVariable String resourceId,
-
+            @RequestParam ResourceType type,
             Authentication authentication
     ) {
-
         return ResponseEntity.ok(
 
-                optimizationService.analyzeEc2(
-
+                optimizationService.analyzeResource(
                         accountId,
-
                         resourceId,
-
+                        type,
                         authentication.getName()
                 )
         );
@@ -267,4 +264,119 @@ public class CloudAccountController {
                 accountOptimizationService.getReport(reportId)
         );
     }
+
+
+
+
+    @Operation(
+            summary = "Optimize Resource Type",
+            description = "Runs optimization for a specific resource type such as EC2, S3, RDS or EKS"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Optimization completed successfully"
+    )
+    @PostMapping("/{accountId}/optimize/{resourceType}")
+    public ResponseEntity<AccountOptimizationResponse>
+    optimizeResourceType(
+            @PathVariable UUID accountId,
+            @PathVariable ResourceType resourceType,
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+                accountOptimizationService.optimizeResourceType(
+                        accountId,
+                        resourceType,
+                        authentication.getName()
+                )
+        );
+    }
+
+
+    @GetMapping("/{accountId}/summary")
+    public ResponseEntity<DashboardSummaryResponse>
+    getSummary(
+
+            @PathVariable UUID accountId,
+
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+                accountOptimizationService.getSummary(
+                        accountId,
+                        authentication.getName()
+                )
+        );
+    }
+
+    @GetMapping("/{accountId}/dashboard")
+    public ResponseEntity<DashboardResponse>
+    getDashboard(
+
+            @PathVariable UUID accountId,
+
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+                accountOptimizationService.getDashboard(
+                        accountId,
+                        authentication.getName()
+                )
+        );
+    }
+
+
+    @GetMapping("/{accountId}/s3/{bucketName}")
+    public ResponseEntity<S3DetailsResponse>
+    getS3Details(
+
+            @PathVariable UUID accountId,
+
+            @PathVariable String bucketName,
+
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+
+                awsDiscoveryService.getS3Details(
+
+                        accountId,
+
+                        bucketName,
+
+                        authentication.getName()
+                )
+        );
+    }
+
+
+    @GetMapping("/{accountId}/eks/{clusterName}")
+    public ResponseEntity<EksDetailsResponse>
+    getEksDetails(
+
+            @PathVariable UUID accountId,
+
+            @PathVariable String clusterName,
+
+            Authentication authentication
+    ) {
+
+        return ResponseEntity.ok(
+
+                awsDiscoveryService.getEksDetails(
+
+                        accountId,
+
+                        clusterName,
+
+                        authentication.getName()
+                )
+        );
+    }
+
+
 }

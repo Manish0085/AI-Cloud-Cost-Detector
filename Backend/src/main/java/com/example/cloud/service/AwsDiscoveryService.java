@@ -1,8 +1,6 @@
 package com.example.cloud.service;
 
-import com.example.cloud.dto.Ec2DetailsResponse;
-import com.example.cloud.dto.ResourceMetricsResponse;
-import com.example.cloud.dto.ResourceResponse;
+import com.example.cloud.dto.*;
 import com.example.cloud.enums.ResourceType;
 
 import java.util.List;
@@ -25,6 +23,25 @@ public interface AwsDiscoveryService {
     ResourceMetricsResponse getMetrics(
             UUID cloudAccountId,
             String resourceId,
+            String email
+    );
+
+
+    S3DetailsResponse getS3Details(
+            UUID cloudAccountId,
+            String bucketName,
+            String email
+    );
+
+    RdsDetailsResponse getRdsDetails(
+            UUID cloudAccountId,
+            String dbIdentifier,
+            String email
+    );
+
+    EksDetailsResponse getEksDetails(
+            UUID cloudAccountId,
+            String clusterName,
             String email
     );
 

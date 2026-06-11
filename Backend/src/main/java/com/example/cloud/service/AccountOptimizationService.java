@@ -1,8 +1,7 @@
 package com.example.cloud.service;
 
-import com.example.cloud.dto.AccountOptimizationResponse;
-import com.example.cloud.dto.OptimizationReportDetailsResponse;
-import com.example.cloud.dto.OptimizationReportResponse;
+import com.example.cloud.dto.*;
+import com.example.cloud.enums.ResourceType;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -25,4 +24,21 @@ public interface AccountOptimizationService {
     );
 
     OptimizationReportDetailsResponse getReport(UUID reportId);
+
+
+    AccountOptimizationResponse optimizeResourceType(
+            UUID cloudAccountId,
+            ResourceType resourceType,
+            String email
+    );
+
+    DashboardSummaryResponse getSummary(
+            UUID accountId,
+            String email
+    );
+
+    DashboardResponse getDashboard(
+            UUID accountId,
+            String email
+    );
 }

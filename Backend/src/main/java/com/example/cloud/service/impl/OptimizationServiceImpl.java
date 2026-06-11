@@ -3,10 +3,8 @@ package com.example.cloud.service.impl;
 import com.example.cloud.dto.Ec2DetailsResponse;
 import com.example.cloud.dto.OptimizationResponse;
 import com.example.cloud.dto.ResourceFinding;
-import com.example.cloud.service.AiRecommendationService;
-import com.example.cloud.service.AwsDiscoveryService;
-import com.example.cloud.service.OptimizationService;
-import com.example.cloud.service.ResourceAnalysisService;
+import com.example.cloud.enums.ResourceType;
+import com.example.cloud.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,49 +22,100 @@ public class OptimizationServiceImpl
 
     private final AiRecommendationService aiRecommendationService;
 
+
     @Override
-    public OptimizationResponse analyzeEc2(
+    public OptimizationResponse analyzeResource(
 
             UUID cloudAccountId,
 
             String resourceId,
 
+            ResourceType resourceType,
+
             String email
     ) {
 
-        Ec2DetailsResponse details =
-                awsDiscoveryService.getEc2Details(
+        List<ResourceFinding> findings =
+                resourceAnalysisService.analyzeResource(
                         cloudAccountId,
                         resourceId,
+                        resourceType,
                         email
                 );
 
-        List<ResourceFinding> findings =
-                resourceAnalysisService.analyzeResource(
-
+        String resourceName =
+                getResourceName(
                         cloudAccountId,
-
                         resourceId,
-
+                        resourceType,
                         email
                 );
 
         String aiRecommendation =
                 aiRecommendationService
                         .generateResourceRecommendation(
-
-                                details.instanceName(),
-
+                                resourceName,
                                 findings
                         );
 
         return new OptimizationResponse(
-
                 resourceId,
-
-                details.instanceType(),
-
+                resourceType.name(),
                 aiRecommendation
         );
+    }
+
+    private String getResourceName(
+
+            UUID cloudAccountId,
+
+            String resourceId,
+
+            ResourceType resourceType,
+
+            String email
+    ) {
+
+        return switch (resourceType) {
+
+            case EC2 ->
+                    awsDiscoveryService
+                            .getEc2Details(
+                                    cloudAccountId,
+                                    resourceId,
+                                    email
+                            )
+                            .instanceName();
+
+            case S3 ->
+                    awsDiscoveryService
+                            .getS3Details(
+                                    cloudAccountId,
+                                    resourceId,
+                                    email
+                            )
+                            .bucketName();
+
+            case RDS ->
+                    awsDiscoveryService
+                            .getRdsDetails(
+                                    cloudAccountId,
+                                    resourceId,
+                                    email
+                            )
+                            .dbIdentifier();
+
+            case EKS ->
+                    awsDiscoveryService
+                            .getEksDetails(
+                                    cloudAccountId,
+                                    resourceId,
+                                    email
+                            )
+                            .clusterName();
+
+            default ->
+                    resourceId;
+        };
     }
 }

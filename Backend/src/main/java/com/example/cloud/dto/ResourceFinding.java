@@ -8,6 +8,8 @@ public record ResourceFinding(
 
         String recommendation,
 
-        String reason
+        String reason,
+
+        Double estimatedMonthlySavings
 ) {
 }

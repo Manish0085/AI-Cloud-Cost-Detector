@@ -67,20 +67,16 @@ public class AccountOptimizationServiceImpl
 
             List<ResourceFinding> findings =
                     resourceAnalysisService.analyzeResource(
-
                             cloudAccountId,
-
                             resource.resourceId(),
-
+                            ResourceType.valueOf(resource.resourceType()),
                             email
                     );
 
             String aiRecommendation =
                     aiRecommendationService
                             .generateResourceRecommendation(
-
                                     resource.resourceName(),
-
                                     findings
                             );
 
@@ -186,6 +182,187 @@ public class AccountOptimizationServiceImpl
                 report.getTotalFindings(),
                 report.getExecutiveSummary(),
                 report.getCreatedAt()
+        );
+    }
+
+
+    @Override
+    public AccountOptimizationResponse optimizeResourceType(
+            UUID cloudAccountId,
+            ResourceType resourceType,
+            String email
+    ) {
+
+        CloudAccount account =
+                cloudAccountRepository.findById(
+                        cloudAccountId
+                ).orElseThrow(
+                        () -> new CloudAccountNotFoundException(
+                                "Cloud account not found"
+                        )
+                );
+
+        List<ResourceResponse> resources =
+                awsDiscoveryService.discoverResources(
+                        cloudAccountId,
+                        resourceType,
+                        email
+                );
+
+        List<ResourceOptimizationResult>
+                optimizedResources =
+                new ArrayList<>();
+
+        for (ResourceResponse resource : resources) {
+
+            List<ResourceFinding> findings =
+                    resourceAnalysisService.analyzeResource(
+                            cloudAccountId,
+                            resource.resourceId(),
+                            ResourceType.valueOf(resource.resourceType()),
+                            email
+                    );
+
+            String aiRecommendation =
+                    aiRecommendationService
+                            .generateResourceRecommendation(
+                                    resource.resourceName(),
+                                    findings
+                            );
+
+            optimizedResources.add(
+
+                    new ResourceOptimizationResult(
+                            resource.resourceId(),
+                            resource.resourceName(),
+                            resource.resourceType(),
+                            findings,
+                            aiRecommendation
+                    )
+            );
+        }
+
+        int totalFindings =
+                optimizedResources.stream()
+                        .mapToInt(
+                                r -> r.findings().size()
+                        )
+                        .sum();
+
+        String executiveSummary =
+                aiRecommendationService
+                        .generateExecutiveSummary(
+                                optimizedResources
+                        );
+
+        return new AccountOptimizationResponse(
+                resources.size(),
+                totalFindings,
+                optimizedResources,
+                executiveSummary
+        );
+    }
+
+    @Override
+    public DashboardSummaryResponse getSummary(
+            UUID accountId,
+            String email
+    ) {
+
+        List<ResourceResponse> resources =
+                awsDiscoveryService.discoverResources(
+                        accountId,
+                        ResourceType.ALL,
+                        email
+                );
+
+        int ec2Count =
+                (int) resources.stream()
+                        .filter(r ->
+                                r.resourceType()
+                                        .equals("EC2"))
+                        .count();
+
+        int s3Count =
+                (int) resources.stream()
+                        .filter(r ->
+                                r.resourceType()
+                                        .equals("S3"))
+                        .count();
+
+        int rdsCount =
+                (int) resources.stream()
+                        .filter(r ->
+                                r.resourceType()
+                                        .equals("RDS"))
+                        .count();
+
+        int eksCount =
+                (int) resources.stream()
+                        .filter(r ->
+                                r.resourceType()
+                                        .equals("EKS"))
+                        .count();
+
+        int totalFindings =
+                optimizationReportRepository
+                        .findByCloudAccountId(accountId)
+                        .stream()
+                        .mapToInt(
+                                OptimizationReport::getTotalFindings
+                        )
+                        .sum();
+
+        return new DashboardSummaryResponse(
+                resources.size(),
+                ec2Count,
+                s3Count,
+                rdsCount,
+                eksCount,
+                totalFindings
+        );
+    }
+
+
+    @Override
+    public DashboardResponse getDashboard(
+            UUID accountId,
+            String email
+    ) {
+
+        DashboardSummaryResponse summary =
+                getSummary(
+                        accountId,
+                        email
+                );
+
+        Pageable pageable =
+                PageRequest.of(
+                        0,
+                        5
+                );
+
+        List<OptimizationReportResponse>
+                reports =
+                optimizationReportRepository
+                        .findByCloudAccountIdOrderByCreatedAtDesc(
+                                accountId,
+                                pageable
+                        )
+                        .stream()
+                        .map(report ->
+                                new OptimizationReportResponse(
+                                        report.getId(),
+                                        report.getTotalResources(),
+                                        report.getTotalFindings(),
+                                        report.getCreatedAt()
+                                )
+                        )
+                        .toList();
+
+        return new DashboardResponse(
+                summary,
+                reports
         );
     }
 }
