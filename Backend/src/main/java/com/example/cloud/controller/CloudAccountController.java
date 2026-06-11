@@ -6,6 +6,9 @@ import com.example.cloud.service.AccountOptimizationService;
 import com.example.cloud.service.AwsDiscoveryService;
 import com.example.cloud.service.CloudAccountService;
 import com.example.cloud.service.OptimizationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/cloud")
 @RequiredArgsConstructor
+@Tag(
+        name = "Cloud Optimization",
+        description = "Cloud account management, resource discovery, optimization and reporting APIs"
+)
 public class CloudAccountController {
 
     private final CloudAccountService cloudAccountService;
@@ -30,6 +37,14 @@ public class CloudAccountController {
     private final OptimizationService optimizationService;
     private final AccountOptimizationService accountOptimizationService;
 
+    @Operation(
+            summary = "Connect AWS Account",
+            description = "Connects an AWS account using access key and secret key"
+    )
+    @ApiResponse(
+            responseCode = "201",
+            description = "Cloud account connected successfully"
+    )
     @PostMapping("/connect")
     public ResponseEntity<String> connectAccount(
             @Valid @RequestBody ConnectCloudRequest request,
@@ -46,6 +61,14 @@ public class CloudAccountController {
                 .body("Cloud account connected successfully");
     }
 
+    @Operation(
+            summary = "Discover Resources",
+            description = "Discovers resources available in a cloud account"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Resources retrieved successfully"
+    )
     @GetMapping("/{id}/resources")
     public ResponseEntity<List<ResourceResponse>> getResources(
 
@@ -66,7 +89,14 @@ public class CloudAccountController {
         );
     }
 
-
+    @Operation(
+            summary = "Get Connected Accounts",
+            description = "Returns all cloud accounts connected by the current user"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Accounts retrieved successfully"
+    )
     @GetMapping("/accounts")
     public ResponseEntity<List<CloudAccountResponse>>
     getAccounts(
@@ -80,7 +110,14 @@ public class CloudAccountController {
         );
     }
 
-
+    @Operation(
+            summary = "Get Resource Details",
+            description = "Returns detailed information for a specific EC2 resource"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Resource details retrieved successfully"
+    )
     @GetMapping("/{accountId}/resources/{resourceId}")
     public ResponseEntity<Ec2DetailsResponse> getResourceDetails(
 
@@ -101,7 +138,14 @@ public class CloudAccountController {
         );
     }
 
-
+    @Operation(
+            summary = "Get Resource Metrics",
+            description = "Returns CloudWatch metrics for a resource"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Metrics retrieved successfully"
+    )
     @GetMapping("/{accountId}/resources/{resourceId}/metrics")
     public ResponseEntity<ResourceMetricsResponse> getMetrics(
 
@@ -121,10 +165,15 @@ public class CloudAccountController {
         );
     }
 
-
-    @PostMapping(
-            "/{accountId}/resources/{resourceId}/optimize"
+    @Operation(
+            summary = "Optimize Resource",
+            description = "Analyzes a single EC2 resource and generates optimization recommendations"
     )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Optimization completed successfully"
+    )
+    @PostMapping("/{accountId}/resources/{resourceId}/optimize")
     public ResponseEntity<OptimizationResponse>
     optimize(
 
@@ -148,7 +197,14 @@ public class CloudAccountController {
         );
     }
 
-
+    @Operation(
+            summary = "Optimize Cloud Account",
+            description = "Runs AI-powered optimization analysis across all resources in a cloud account using AWS metrics, RAG and OpenRouter"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Account optimization completed successfully"
+    )
     @PostMapping("/{accountId}/optimize")
     public ResponseEntity<AccountOptimizationResponse>
     optimizeAccount(
@@ -164,7 +220,14 @@ public class CloudAccountController {
         );
     }
 
-
+    @Operation(
+            summary = "Get Optimization Reports",
+            description = "Returns paginated optimization reports for a cloud account"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Reports retrieved successfully"
+    )
     @GetMapping("/{accountId}/reports")
     public ResponseEntity<Page<OptimizationReportResponse>>
     getReports(
@@ -187,14 +250,21 @@ public class CloudAccountController {
         );
     }
 
+    @Operation(
+            summary = "Get Report Details",
+            description = "Returns details of a specific optimization report"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Report retrieved successfully"
+    )
     @GetMapping("/reports/{reportId}")
     public ResponseEntity<OptimizationReportDetailsResponse> getReport(
             @PathVariable UUID reportId
     ) {
 
         return ResponseEntity.ok(
-                accountOptimizationService
-                        .getReport(reportId)
+                accountOptimizationService.getReport(reportId)
         );
     }
 }
