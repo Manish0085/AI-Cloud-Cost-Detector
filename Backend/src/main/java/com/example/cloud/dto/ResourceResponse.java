@@ -1,5 +1,7 @@
 package com.example.cloud.dto;
 
+import java.io.Serializable;
+
 public record ResourceResponse(
 
         String resourceId,
@@ -12,5 +14,5 @@ public record ResourceResponse(
 
         String status
 
-) {
+) implements Serializable {
 }

@@ -11,6 +11,7 @@ import com.example.cloud.service.AwsDiscoveryService;
 import com.example.cloud.service.AwsRegionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -45,6 +46,11 @@ public class AwsDiscoveryServiceImpl
     private final CloudAccountRepository cloudAccountRepository;
     private final AwsRegionService awsRegionService;
 
+
+    @Cacheable(
+            value = "resources",
+            key = "#cloudAccountId + '_' + #type"
+    )
     @Override
     public List<ResourceResponse> discoverResources(
             UUID cloudAccountId,
@@ -121,6 +127,8 @@ public class AwsDiscoveryServiceImpl
                                 credentials
                         )
                 );
+                resources.addAll(discoverRds(credentials, regions));
+                resources.addAll(discoverEks(credentials, regions));
 
                 yield resources;
             }
@@ -338,6 +346,10 @@ public class AwsDiscoveryServiceImpl
                 .orElse(instance.instanceId());
     }
 
+    @Cacheable(
+            value = "ec2-details",
+            key = "#cloudAccountId + '_' + #resourceId"
+    )
     @Override
     public Ec2DetailsResponse getEc2Details(
             UUID cloudAccountId,
@@ -429,6 +441,10 @@ public class AwsDiscoveryServiceImpl
     }
 
 
+    @Cacheable(
+            value = "metrics",
+            key = "#cloudAccountId + '_' + #resourceId"
+    )
     @Override
     public ResourceMetricsResponse getMetrics(
             UUID cloudAccountId,
@@ -594,6 +610,10 @@ public class AwsDiscoveryServiceImpl
 
 
 
+    @Cacheable(
+            value = "s3-details",
+            key = "#cloudAccountId + '_' + #bucketName"
+    )
     @Override
     public S3DetailsResponse getS3Details(
 
@@ -711,6 +731,10 @@ public class AwsDiscoveryServiceImpl
     }
 
 
+    @Cacheable(
+            value = "eks-details",
+            key = "#cloudAccountId + '_' + #clusterName"
+    )
     @Override
     public EksDetailsResponse getEksDetails(
 
@@ -824,6 +848,10 @@ public class AwsDiscoveryServiceImpl
     }
 
 
+    @Cacheable(
+            value = "rds-details",
+            key = "#cloudAccountId + '_' + #dbIdentifier"
+    )
     @Override
     public RdsDetailsResponse getRdsDetails(
 

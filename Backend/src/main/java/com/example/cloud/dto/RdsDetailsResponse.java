@@ -1,5 +1,7 @@
 package com.example.cloud.dto;
 
+import java.io.Serializable;
+
 public record RdsDetailsResponse(
 
         String dbIdentifier,
@@ -16,5 +18,5 @@ public record RdsDetailsResponse(
 
         String availabilityZone
 
-) {
+) implements Serializable {
 }

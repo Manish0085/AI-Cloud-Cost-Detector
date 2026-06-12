@@ -1,5 +1,7 @@
 package com.example.cloud.dto;
 
+import java.io.Serializable;
+
 public record Ec2DetailsResponse(
 
         String instanceId,
@@ -20,5 +22,5 @@ public record Ec2DetailsResponse(
 
         String availabilityZone
 
-) {
+) implements Serializable {
 }

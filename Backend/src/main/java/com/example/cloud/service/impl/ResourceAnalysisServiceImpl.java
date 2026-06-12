@@ -18,6 +18,7 @@ public class ResourceAnalysisServiceImpl
         implements ResourceAnalysisService {
 
     private final AwsDiscoveryService awsDiscoveryService;
+    private final PricingService pricingService;
 
     @Override
     public List<ResourceFinding> analyzeResource(
@@ -90,6 +91,19 @@ public class ResourceAnalysisServiceImpl
                         email
                 );
 
+        String region =
+                details.availabilityZone()
+                        .substring(
+                                0,
+                                details.availabilityZone().length() - 1
+                        );
+
+        double estimatedMonthlySavings =
+                pricingService.getEc2HourlyPrice(
+                        details.instanceType(),
+                        region
+                ) * 24 * 30;
+
         List<ResourceFinding> findings =
                 new ArrayList<>();
 
@@ -101,7 +115,7 @@ public class ResourceAnalysisServiceImpl
                             "EC2",
                             "Downsize Instance",
                             "CPU utilization remained below 5%",
-                            0.0
+                            estimatedMonthlySavings * 0.0
                     )
             );
         }
@@ -115,7 +129,7 @@ public class ResourceAnalysisServiceImpl
                             "EC2",
                             "Investigate Idle Workload",
                             "Network activity is extremely low",
-                            0.0
+                            estimatedMonthlySavings * 0.0
                     )
             );
         }
@@ -129,7 +143,7 @@ public class ResourceAnalysisServiceImpl
                             "EC2",
                             "Review Necessity Of Resource",
                             "No disk activity detected",
-                            0.0
+                            estimatedMonthlySavings * 0.0
                     )
             );
         }
@@ -142,7 +156,7 @@ public class ResourceAnalysisServiceImpl
                             "EC2",
                             "No Optimization Needed",
                             "Resource appears healthy",
-                            0.0
+                            estimatedMonthlySavings * 0.0
                     )
             );
         }

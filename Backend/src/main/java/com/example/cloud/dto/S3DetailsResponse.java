@@ -1,5 +1,7 @@
 package com.example.cloud.dto;
 
+import java.io.Serializable;
+
 public record S3DetailsResponse(
 
         String bucketName,
@@ -14,5 +16,5 @@ public record S3DetailsResponse(
 
         Long bucketSizeBytes
 
-) {
+) implements Serializable {
 }

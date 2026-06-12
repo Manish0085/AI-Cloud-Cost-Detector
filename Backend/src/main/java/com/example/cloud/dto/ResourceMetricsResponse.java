@@ -1,5 +1,7 @@
 package com.example.cloud.dto;
 
+import java.io.Serializable;
+
 public record ResourceMetricsResponse(
 
         Double cpuUtilization,
@@ -11,5 +13,5 @@ public record ResourceMetricsResponse(
         Double diskReadBytes,
 
         Double diskWriteBytes
-) {
+) implements Serializable {
 }

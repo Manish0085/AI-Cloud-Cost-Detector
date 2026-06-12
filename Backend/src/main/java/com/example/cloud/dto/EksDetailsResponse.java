@@ -1,5 +1,7 @@
 package com.example.cloud.dto;
 
+import java.io.Serializable;
+
 public record EksDetailsResponse(
 
         String clusterName,
@@ -12,5 +14,5 @@ public record EksDetailsResponse(
 
         Integer nodeCount
 
-) {
+) implements Serializable {
 }

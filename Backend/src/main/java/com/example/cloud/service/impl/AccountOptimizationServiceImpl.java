@@ -14,6 +14,7 @@ import com.example.cloud.service.AwsDiscoveryService;
 import com.example.cloud.service.ResourceAnalysisService;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -133,6 +134,10 @@ public class AccountOptimizationServiceImpl
     }
 
 
+    @Cacheable(
+            value = "reports",
+            key = "#cloudAccountId + '_' + #page + '_' + #size"
+    )
     @Override
     public Page<OptimizationReportResponse> getReports(
             UUID cloudAccountId,
@@ -163,6 +168,10 @@ public class AccountOptimizationServiceImpl
     }
 
 
+    @Cacheable(
+            value = "report-details",
+            key = "#reportId"
+    )
     @Override
     public OptimizationReportDetailsResponse
     getReport(UUID reportId) {
