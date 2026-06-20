@@ -1,0 +1,90 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres:17
+    container_name: cloud-optimizer-db
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      POSTGRES_DB: cloudoptimizer
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  
+    networks:
+      - cloud-optimizer-network
+
+
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloud-optimizer-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+
+    command: redis-server --appendonly yes
+
+    networks:
+      - cloud-optimizer-network
+
+
+  backend:
+    image: manishk57107/cloud-optimizer-backend:latest
+    container_name: cloud-optimizer-backend
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+    depends_on:
+      - postgres
+      - redis
+
+    networks:
+      - cloud-optimizer-network
+
+
+
+  frontend:
+    image: manishk57107/cloud-optimizer-frontend:latest
+    container_name: cloud-optimizer-frontend
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      - backend
+
+    networks:
+      - cloud-optimizer-network
+
+
+
+networks:
+  cloud-optimizer-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
