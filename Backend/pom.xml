@@ -73,6 +73,13 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
+		<!-- Production health checks (DB + Redis readiness) consumed by
+		     Docker / Nginx / Jenkins. Exposes /actuator/health. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 
 		<dependency>
 			<groupId>org.postgresql</groupId>
@@ -155,8 +162,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>pricing</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>
+				spring-boot-starter-oauth2-client
+			</artifactId>
 		</dependency>
 
 		<dependency>

@@ -1,6 +1,7 @@
 package com.example.cloud.config;
 
 import com.example.cloud.security.JwtAuthenticationFilter;
+import com.example.cloud.service.impl.OAuthSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter filter;
+    private final OAuthSuccessHandler successHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -31,7 +33,14 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/auth/**"
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/refresh",
+                                "/oauth2/**",
+                                "/login/**",
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/actuator/info"
                         ).permitAll()
                         .anyRequest()
                         .authenticated()
@@ -41,6 +50,12 @@ public class SecurityConfig {
                                 SessionCreationPolicy.STATELESS
                         )
                 )
+                .oauth2Login(
+                        oauth -> oauth
+                                .successHandler(
+                                        successHandler
+                                )
+                )
                 .addFilterBefore(
                         filter,
                         UsernamePasswordAuthenticationFilter.class
@@ -49,8 +64,5 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+
 }

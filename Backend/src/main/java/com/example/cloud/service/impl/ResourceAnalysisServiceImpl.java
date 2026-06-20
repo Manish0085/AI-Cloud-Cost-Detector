@@ -69,11 +69,8 @@ public class ResourceAnalysisServiceImpl
 
 
     private List<ResourceFinding> analyzeEc2(
-
             UUID cloudAccountId,
-
             String resourceId,
-
             String email
     ) {
 
@@ -98,7 +95,7 @@ public class ResourceAnalysisServiceImpl
                                 details.availabilityZone().length() - 1
                         );
 
-        double estimatedMonthlySavings =
+        double estimatedMonthlyCost =
                 pricingService.getEc2HourlyPrice(
                         details.instanceType(),
                         region
@@ -107,6 +104,39 @@ public class ResourceAnalysisServiceImpl
         List<ResourceFinding> findings =
                 new ArrayList<>();
 
+        String metricsSummary = """
+            CPU Utilization: %.2f%%
+            Network In: %.2f bytes
+            Network Out: %.2f bytes
+            Disk Read Bytes: %.2f
+            Disk Write Bytes: %.2f
+            """.formatted(
+                metrics.cpuUtilization(),
+                metrics.networkIn(),
+                metrics.networkOut(),
+                metrics.diskReadBytes(),
+                metrics.diskWriteBytes()
+        );
+
+        // High CPU workload
+        if (metrics.cpuUtilization() > 80) {
+
+            findings.add(
+                    new ResourceFinding(
+                            resourceId,
+                            "EC2",
+                            "High CPU Utilization",
+                            metricsSummary + """
+
+                        Observation:
+                        CPU utilization is critically high and indicates an actively used workload.
+                        """,
+                            0.0
+                    )
+            );
+        }
+
+        // Low CPU
         if (metrics.cpuUtilization() < 5) {
 
             findings.add(
@@ -114,12 +144,18 @@ public class ResourceAnalysisServiceImpl
                             resourceId,
                             "EC2",
                             "Downsize Instance",
-                            "CPU utilization remained below 5%",
-                            estimatedMonthlySavings * 0.0
+                            metricsSummary + """
+
+                        Observation:
+                        CPU utilization remained below 5%%.
+                        Consider rightsizing the instance.
+                        """,
+                            estimatedMonthlyCost * 0.30
                     )
             );
         }
 
+        // Low network activity
         if (metrics.networkIn() < 1000
                 && metrics.networkOut() < 1000) {
 
@@ -128,12 +164,17 @@ public class ResourceAnalysisServiceImpl
                             resourceId,
                             "EC2",
                             "Investigate Idle Workload",
-                            "Network activity is extremely low",
-                            estimatedMonthlySavings * 0.0
+                            metricsSummary + """
+
+                        Observation:
+                        Network activity is extremely low.
+                        """,
+                            estimatedMonthlyCost * 0.50
                     )
             );
         }
 
+        // Disk inactivity
         if (metrics.diskReadBytes() == 0
                 && metrics.diskWriteBytes() == 0) {
 
@@ -141,9 +182,38 @@ public class ResourceAnalysisServiceImpl
                     new ResourceFinding(
                             resourceId,
                             "EC2",
-                            "Review Necessity Of Resource",
-                            "No disk activity detected",
-                            estimatedMonthlySavings * 0.0
+                            "Review Disk Activity",
+                            metricsSummary + """
+
+                        Observation:
+                        No disk activity detected.
+
+                        Note:
+                        Disk inactivity alone does not indicate an idle resource.
+                        """,
+                            0.0
+                    )
+            );
+        }
+
+        // Strong idle signal
+        if (metrics.cpuUtilization() < 5
+                && metrics.networkIn() < 1000
+                && metrics.networkOut() < 1000
+                && metrics.diskReadBytes() == 0
+                && metrics.diskWriteBytes() == 0) {
+
+            findings.add(
+                    new ResourceFinding(
+                            resourceId,
+                            "EC2",
+                            "Potentially Idle Resource",
+                            metricsSummary + """
+
+                        Observation:
+                        Multiple utilization indicators suggest the instance may be idle.
+                        """,
+                            estimatedMonthlyCost
                     )
             );
         }
@@ -155,8 +225,12 @@ public class ResourceAnalysisServiceImpl
                             resourceId,
                             "EC2",
                             "No Optimization Needed",
-                            "Resource appears healthy",
-                            estimatedMonthlySavings * 0.0
+                            metricsSummary + """
+
+                        Observation:
+                        Resource utilization appears healthy.
+                        """,
+                            0.0
                     )
             );
         }
@@ -170,6 +244,7 @@ public class ResourceAnalysisServiceImpl
             String email
     ) {
 
+
         S3DetailsResponse details =
                 awsDiscoveryService.getS3Details(
                         cloudAccountId,
@@ -180,15 +255,31 @@ public class ResourceAnalysisServiceImpl
         List<ResourceFinding> findings =
                 new ArrayList<>();
 
+        String bucketSummary = """
+        Bucket Name: %s
+        Versioning Enabled: %s
+        Public Access Blocked: %s
+        """.formatted(
+                bucketName,
+                details.versioningEnabled(),
+                details.publicAccessBlocked()
+        );
+
         if (!details.versioningEnabled()) {
 
             findings.add(
-
                     new ResourceFinding(
                             bucketName,
                             "S3",
                             "Enable Versioning",
-                            "Bucket versioning is disabled",
+                            bucketSummary + """
+
+                    Observation:
+                    Bucket versioning is disabled.
+
+                    Risk:
+                    Accidental object deletion or overwrite may result in data loss.
+                    """,
                             0.0
                     )
             );
@@ -201,7 +292,14 @@ public class ResourceAnalysisServiceImpl
                             bucketName,
                             "S3",
                             "Block Public Access",
-                            "Bucket is publicly accessible",
+                            bucketSummary + """
+
+                    Observation:
+                    Public access is not fully blocked.
+
+                    Risk:
+                    Sensitive data may be unintentionally exposed to the internet.
+                    """,
                             0.0
                     )
             );
@@ -210,27 +308,29 @@ public class ResourceAnalysisServiceImpl
         if (findings.isEmpty()) {
 
             findings.add(
-
                     new ResourceFinding(
                             bucketName,
                             "S3",
                             "No Optimization Needed",
-                            "Bucket follows recommended practices",
+                            bucketSummary + """
+
+                    Observation:
+                    The bucket follows recommended AWS security and governance practices.
+                    """,
                             0.0
                     )
             );
         }
 
         return findings;
+
+
     }
 
 
     private List<ResourceFinding> analyzeRds(
-
             UUID cloudAccountId,
-
             String dbIdentifier,
-
             String email
     ) {
 
@@ -244,46 +344,81 @@ public class ResourceAnalysisServiceImpl
         List<ResourceFinding> findings =
                 new ArrayList<>();
 
-        if (!"available".equalsIgnoreCase(
-                details.status()
-        )) {
+        String rdsSummary = """
+        Database Identifier: %s
+        Status: %s
+        Allocated Storage: %d GB
+        Engine: %s
+        Instance Class: %s
+        """.formatted(
+                dbIdentifier,
+                details.status(),
+                details.allocatedStorage(),
+                details.engine(),
+                details.instanceClass()
+        );
+
+        if (!"available".equalsIgnoreCase(details.status())) {
+
             findings.add(
                     new ResourceFinding(
                             dbIdentifier,
                             "RDS",
                             "Investigate Database Health",
-                            "Database is not in AVAILABLE state",
+                            rdsSummary + """
+
+                    Observation:
+                    Database is not in AVAILABLE state.
+
+                    Risk:
+                    Database availability or connectivity may be impacted.
+                    """,
                             0.0
                     )
             );
         }
 
         if (details.allocatedStorage() < 20) {
+
             findings.add(
                     new ResourceFinding(
                             dbIdentifier,
                             "RDS",
                             "Review Storage Allocation",
-                            "Allocated storage is very small",
+                            rdsSummary + """
+
+                    Observation:
+                    Allocated storage is relatively small.
+
+                    Risk:
+                    Future workload growth may result in storage exhaustion and application downtime.
+                    """,
                             0.0
                     )
             );
         }
 
         if (findings.isEmpty()) {
+
             findings.add(
                     new ResourceFinding(
                             dbIdentifier,
                             "RDS",
                             "No Optimization Needed",
-                            "Database appears healthy",
+                            rdsSummary + """
+
+                    Observation:
+                    Database appears healthy and follows expected operational standards.
+                    """,
                             0.0
                     )
             );
         }
 
         return findings;
+
     }
+
 
 
     private List<ResourceFinding> analyzeEks(
@@ -300,39 +435,74 @@ public class ResourceAnalysisServiceImpl
         List<ResourceFinding> findings =
                 new ArrayList<>();
 
-        if (!"ACTIVE".equalsIgnoreCase(
-                details.status()
-        )) {
+        String eksSummary = """
+        Cluster Name: %s
+        Status: %s
+        Node Count: %d
+        Kubernetes Version: %s
+        Endpoint Public Access: %s
+        """.formatted(
+                clusterName,
+                details.status(),
+                details.nodeCount(),
+                details.version(),
+                details.endpoint()
+        );
+        if (!"ACTIVE".equalsIgnoreCase(details.status())) {
             findings.add(
                     new ResourceFinding(
                             clusterName,
                             "EKS",
                             "Investigate Cluster Health",
-                            "Cluster is not active",
+                            eksSummary + """
+                    Observation:
+                    Cluster is not in ACTIVE state.
+
+                    Risk:
+                    Kubernetes workloads may experience scheduling,
+                    networking, or availability issues.
+                    """,
                             0.0
                     )
             );
         }
 
         if (details.nodeCount() == 0) {
+
             findings.add(
                     new ResourceFinding(
                             clusterName,
                             "EKS",
                             "Cluster Has No Worker Nodes",
-                            "No node groups found",
+                            eksSummary + """
+
+                    Observation:
+                    No worker nodes or node groups are attached to the cluster.
+
+                    Risk:
+                    Applications cannot be scheduled and the cluster
+                    may be generating unnecessary control-plane costs.
+                    """,
                             0.0
                     )
             );
         }
 
         if (findings.isEmpty()) {
+
             findings.add(
                     new ResourceFinding(
                             clusterName,
                             "EKS",
                             "No Optimization Needed",
-                            "Cluster appears healthy",
+                            eksSummary + """
+
+                    Observation:
+                    Cluster appears healthy and operational.
+
+                    Risk:
+                    No immediate optimization or operational concerns detected.
+                    """,
                             0.0
                     )
             );
@@ -340,5 +510,6 @@ public class ResourceAnalysisServiceImpl
 
         return findings;
     }
+
 }
 
