@@ -2,24 +2,11 @@
 
 
 <p align="center">
-
-<img src="https://skillicons.dev/icons?i=java,spring,react,postgres,redis,docker,aws,github,linux,bash" />
-
+  <img src="https://skillicons.dev/icons?i=java,spring,react,postgres,redis,docker,aws,github,maven,linux,bash" />
 </p>
 
 <p align="center">
-
-![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green?style=for-the-badge&logo=springboot)
-![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue?style=for-the-badge&logo=postgresql)
-![Redis](https://img.shields.io/badge/Redis-Cache-red?style=for-the-badge&logo=redis)
-![Docker](https://img.shields.io/badge/Docker-Containerization-blue?style=for-the-badge&logo=docker)
-![AWS](https://img.shields.io/badge/AWS-Cloud-orange?style=for-the-badge&logo=amazonaws)
-![OAuth2](https://img.shields.io/badge/OAuth2-Google%20%26%20GitHub-success?style=for-the-badge)
-![JWT](https://img.shields.io/badge/JWT-Authentication-black?style=for-the-badge)
-![DevOps](https://img.shields.io/badge/DevOps-Automation-blueviolet?style=for-the-badge)
-
+  🤖 Spring AI • 🧠 RAG • 🔐 JWT • 🔑 OAuth2 • ⚡ Redis Caching
 </p>
 
 An AI-powered cloud optimization platform built using Java Spring Boot, React, AWS, Redis, and Docker that helps organizations discover cloud resources, analyze utilization patterns, identify optimization opportunities, and generate intelligent recommendations for reducing cloud costs.
