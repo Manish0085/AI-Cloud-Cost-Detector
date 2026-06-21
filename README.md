@@ -6,7 +6,11 @@
 </p>
 
 <p align="center">
-  🤖 Spring AI • 🧠 RAG • 🔐 JWT • 🔑 OAuth2 • ⚡ Redis Caching
+  <img src="https://img.shields.io/badge/Spring%20AI-AI%20Powered-6DB33F?style=flat-square" />
+  <img src="https://img.shields.io/badge/RAG-Retrieval%20Augmented%20Generation-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/OAuth2-Google%20%26%20GitHub-success?style=flat-square" />
+  <img src="https://img.shields.io/badge/JWT-Authentication-black?style=flat-square" />
+  <img src="https://img.shields.io/badge/Redis-Caching-red?style=flat-square" />
 </p>
 
 An AI-powered cloud optimization platform built using Java Spring Boot, React, AWS, Redis, and Docker that helps organizations discover cloud resources, analyze utilization patterns, identify optimization opportunities, and generate intelligent recommendations for reducing cloud costs.
