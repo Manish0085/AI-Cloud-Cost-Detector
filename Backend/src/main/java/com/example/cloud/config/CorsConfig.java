@@ -26,8 +26,6 @@ public class CorsConfig {
         configuration.setAllowedOrigins(
                 List.of(
                         frontendUrl
-                        // Later:
-                        // "https://your-frontend.vercel.app"
                 )
         );
 

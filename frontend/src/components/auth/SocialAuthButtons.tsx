@@ -10,7 +10,9 @@ type Provider = "google" | "github"
 const OAUTH_BASE = import.meta.env.VITE_OAUTH_BASE_URL ?? ""
 
 function authorizationUrl(provider: Provider) {
-  return `${OAUTH_BASE}/oauth2/authorization/${provider}`
+  const url = `${OAUTH_BASE}/oauth2/authorization/${provider}`;
+  console.log("OAuth URL:", url);
+  return url;
 }
 
 interface Props {

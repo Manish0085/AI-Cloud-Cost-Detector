@@ -1,0 +1,71 @@
+# Logs
+
+logs/
+*.log
+
+# Output Files
+
+outputs/
+*.json
+
+# AWS Credentials
+
+.aws/
+credentials
+config
+
+# Environment Variables
+
+.env
+.env.*
+
+# SSH Keys
+
+*.pem
+*.ppk
+id_rsa
+id_rsa.pub
+
+# Temporary Files
+
+*.tmp
+*.temp
+
+# OS Files
+
+.DS_Store
+Thumbs.db
+
+# IDE Files
+
+.idea/
+.vscode/
+*.iml
+
+# Shell History
+
+.history
+
+# Terraform
+
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Ansible
+
+*.retry
+
+# Archive Files
+
+*.zip
+*.tar
+*.tar.gz
+
+# Backup Files
+
+*.bak
+
+# Generated Reports
+
+reports/

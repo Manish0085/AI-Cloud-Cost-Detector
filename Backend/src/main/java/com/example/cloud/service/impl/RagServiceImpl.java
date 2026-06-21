@@ -27,66 +27,67 @@ public class RagServiceImpl implements RagService {
     private final JdbcTemplate jdbcTemplate;
 
 
-//    @PostConstruct
-//    public void loadKnowledge() {
-//
-//        try {
-//
-//            Integer count = jdbcTemplate.queryForObject(
-//                    "SELECT COUNT(*) FROM vector_store",
-//                    Integer.class
-//            );
-//
-//            if (count != null && count > 0) {
-//
-//                log.info(
-//                        "Knowledge base already loaded. Total chunks: {}",
-//                        count
-//                );
-//
-//                return;
-//            }
-//
-//            PagePdfDocumentReader pdfReader =
-//                    new PagePdfDocumentReader(
-//                            new ClassPathResource(
-//                                    "knowledge/AWS_Cloud_Cost_Optimization_Handbook.pdf"
-//                            )
-//                    );
-//
-//            List<Document> pages =
-//                    pdfReader.get();
-//
-//            log.info(
-//                    "PDF pages loaded: {}",
-//                    pages.size()
-//            );
-//
-//            TokenTextSplitter splitter =
-//                    new TokenTextSplitter();
-//
-//            List<Document> chunks =
-//                    splitter.apply(pages);
-//
-//            vectorStore.add(chunks);
-//
-//            log.info(
-//                    "Stored {} chunks in vector store",
-//                    chunks.size()
-//            );
-//
-//            log.info(
-//                    "Knowledge loaded successfully"
-//            );
-//
-//        } catch (Exception ex) {
-//
-//            log.error(
-//                    "Failed to load knowledge base",
-//                    ex
-//            );
-//        }
-//    }
+    private boolean knowledgeAlreadyLoaded() {
+
+        Integer count =
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM vector_store",
+                        Integer.class
+                );
+
+        return count != null && count > 0;
+    }
+
+    @PostConstruct
+    public void loadKnowledge() {
+
+        try {
+
+            if (knowledgeAlreadyLoaded()) {
+
+                log.info("Knowledge base already loaded");
+
+                return;
+            }
+
+            PagePdfDocumentReader pdfReader =
+                    new PagePdfDocumentReader(
+                            new ClassPathResource(
+                                    "knowledge/AWS_Cloud_Cost_Optimization_Handbook.pdf"
+                            )
+                    );
+
+            List<Document> pages =
+                    pdfReader.get();
+
+            log.info(
+                    "PDF pages loaded: {}",
+                    pages.size()
+            );
+
+            TokenTextSplitter splitter =
+                    new TokenTextSplitter();
+
+            List<Document> chunks =
+                    splitter.apply(pages);
+
+            vectorStore.add(chunks);
+
+            log.info(
+                    "Stored {} chunks in vector store",
+                    chunks.size()
+            );
+
+            log.info("Knowledge loaded successfully");
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Failed to load knowledge base",
+                    ex
+            );
+        }
+    }
 
     @Override
     public void ingestDocument(
